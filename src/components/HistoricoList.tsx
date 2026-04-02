@@ -90,7 +90,7 @@ export default function HistoricoList({
           <select
             value={filterCoin}
             onChange={(e) => setFilterCoin(e.target.value)}
-            className="h-8 rounded-md border border-border bg-background pl-8 pr-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-8 rounded-md border border-border bg-background pl-8 pr-3 text-base text-foreground focus:outline-none focus:ring-1 focus:ring-primary sm:text-xs"
           >
             <option value="">Todos os ativos</option>
             {coinOptions.map(([id, name]) => (
