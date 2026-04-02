@@ -30,6 +30,7 @@ export default function HomePage() {
   const [operacaoAtual, setOperacaoAtual] = useState<Operacao | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const lastProcessedTokenRef = useRef<string | null>(null);
+  const resultSectionRef = useRef<HTMLDivElement>(null);
   const { addOperacao } = useOperacoes();
   const historyQuery = useCoinHistoryQuery(
     submission ? { coinId: submission.coin.id, date: submission.dataCompra } : null,
@@ -91,6 +92,12 @@ export default function HomePage() {
       ...values,
       token: generateId(),
     });
+
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      window.requestAnimationFrame(() => {
+        resultSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
   }
 
   return (
@@ -148,11 +155,13 @@ export default function HomePage() {
           </Card>
         </div>
 
-        <ResultadoConsulta
-          operacao={operacaoAtual}
-          loading={historyQuery.isFetching}
-          errorMessage={errorMessage}
-        />
+        <div ref={resultSectionRef} className="scroll-mt-24">
+          <ResultadoConsulta
+            operacao={operacaoAtual}
+            loading={historyQuery.isFetching}
+            errorMessage={errorMessage}
+          />
+        </div>
       </div>
     </>
   );

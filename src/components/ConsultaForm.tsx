@@ -270,8 +270,8 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
           </div>
 
           {/* Linha 2: data + quantidade + botão */}
-          <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
-            <div className="space-y-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <div className="min-w-0 space-y-2">
               <label htmlFor="dataCompra" className="text-sm font-semibold text-primary">
                 Data
               </label>
@@ -281,9 +281,10 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
                 max={getTodayIsoDate()}
                 value={dataCompra}
                 onChange={(e) => setDataCompra(e.target.value)}
+                className="min-w-0 max-w-full"
               />
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <label htmlFor="quantidade" className="text-sm font-semibold text-primary">
                 Quantidade{selectedCoin ? ` (${selectedCoin.symbol.toUpperCase()})` : ''}
               </label>
@@ -295,15 +296,16 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
                 inputMode="decimal"
                 value={quantidade}
                 onChange={(e) => setQuantidade(e.target.value)}
+                className="min-w-0 max-w-full"
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end sm:col-span-2 lg:col-span-1">
               <Button
                 type="submit"
                 variant="lion"
                 size="lg"
                 disabled={loading || !selectedCoinId || !dataCompra}
-                className="w-full"
+                className="w-full lg:min-w-[11.5rem]"
               >
                 {loading ? 'Consultando...' : 'Buscar Valor'}
               </Button>
