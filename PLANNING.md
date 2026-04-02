@@ -40,7 +40,7 @@ Aplicação web que ajuda investidores brasileiros a consultar o valor históric
 ```
 o-leao-ta-de-olho/
 ├── public/
-│   └── favicon.svg
+│   └── logo_leao1x1.svg
 ├── src/
 │   ├── components/
 │   │   ├── ui/                    # Reutilizáveis: Button, Input, Card, CopyButton
