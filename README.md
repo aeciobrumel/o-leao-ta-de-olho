@@ -103,10 +103,10 @@ src/
 
 ### - Tela inicial
 
-<img width="300" alt="image" src="https://github.com/user-attachments/assets/85602655-3f85-428e-88e7-4b254b65e8d3" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/85602655-3f85-428e-88e7-4b254b65e8d3" />
 
 ### - Resultado da consulta
-<img width="300" alt="image" src="https://github.com/user-attachments/assets/964e4f90-75c4-404b-a2ab-5255645ae909" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/964e4f90-75c4-404b-a2ab-5255645ae909" />
 
 ### - Histórico
 <img width="300" alt="image" src="https://github.com/user-attachments/assets/ae405f9c-9493-43bc-b748-d8489fd523c5" />
