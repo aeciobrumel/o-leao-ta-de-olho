@@ -74,6 +74,23 @@
     @apply rounded-md border border-border bg-card/90 shadow-soft backdrop-blur dark:bg-card/80 dark:shadow-soft-dark;
   }
 
+  .native-date-input {
+    min-height: 2.75rem;
+  }
+
+  .native-date-input::-webkit-date-and-time-value {
+    min-height: 1.25rem;
+    text-align: left;
+  }
+
+  .native-date-input::-webkit-datetime-edit {
+    padding: 0;
+  }
+
+  .native-date-input::-webkit-calendar-picker-indicator {
+    margin: 0;
+  }
+
   .section-title {
     @apply font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl;
   }
