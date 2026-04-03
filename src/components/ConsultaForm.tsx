@@ -11,7 +11,7 @@ import { useCoinListQuery, useCoinSearchQuery } from '../hooks/useCoinGecko';
 import { cn } from '../lib/utils';
 import { useAppStore } from '../store/useAppStore';
 import type { CoinListItem, ConsultaFormValues } from '../types';
-import { getTodayIsoDate } from '../utils/formatters';
+import { formatDateInputValue, getTodayIsoDate, parseDateInputValue } from '../utils/formatters';
 import CoinIdentity from './CoinIdentity';
 import Card from './ui/Card';
 import { Button } from './ui/Button';
@@ -24,6 +24,16 @@ interface ConsultaFormProps {
 
 function formatCoinLabel(coin: CoinListItem) {
   return `${coin.symbol.toUpperCase()} • ${coin.name}`;
+}
+
+function isIOSDateInputFallback() {
+  if (typeof window === 'undefined') return false;
+
+  const userAgent = window.navigator.userAgent;
+  const platform = window.navigator.platform;
+  const maxTouchPoints = window.navigator.maxTouchPoints ?? 0;
+
+  return /iP(hone|ad|od)/.test(userAgent) || (platform === 'MacIntel' && maxTouchPoints > 1);
 }
 
 export default function ConsultaForm({ loading = false, onSubmit }: ConsultaFormProps) {
@@ -40,8 +50,10 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [dataCompra, setDataCompra] = useState('');
+  const [dataCompraInput, setDataCompraInput] = useState('');
   const [quantidade, setQuantidade] = useState('1');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [useTextDateInput, setUseTextDateInput] = useState(false);
 
   const deferredInput = useDeferredValue(inputValue);
   const searchTerm = deferredInput.trim();
@@ -61,6 +73,10 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
       setInputValue(formatCoinLabel(selectedCoin));
     }
   }, [selectedCoin]);
+
+  useEffect(() => {
+    setUseTextDateInput(isIOSDateInputFallback());
+  }, []);
 
   const shouldUseRemoteSearch =
     searchTerm.length >= 3 && (!selectedCoin || searchTerm !== formatCoinLabel(selectedCoin));
@@ -180,6 +196,29 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
     onSubmit({ coin: selectedCoin, dataCompra, quantidade: Number(quantidade) });
   }
 
+  function handleDateInputChange(value: string) {
+    const maskedValue = formatDateInputValue(value);
+    const parsedDate = parseDateInputValue(maskedValue);
+    const today = getTodayIsoDate();
+
+    setDataCompraInput(maskedValue);
+
+    if (parsedDate && parsedDate <= today) {
+      setDataCompra(parsedDate);
+      return;
+    }
+
+    setDataCompra('');
+  }
+
+  const hasInvalidDateInput =
+    useTextDateInput && dataCompraInput.length === 10 && parseDateInputValue(dataCompraInput) === '';
+
+  const hasFutureDateInput =
+    useTextDateInput &&
+    dataCompraInput.length === 10 &&
+    parseDateInputValue(dataCompraInput) > getTodayIsoDate();
+
   return (
     <Card>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -277,12 +316,31 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
               </label>
               <Input
                 id="dataCompra"
-                type="date"
-                max={getTodayIsoDate()}
-                value={dataCompra}
-                onChange={(e) => setDataCompra(e.target.value)}
+                type={useTextDateInput ? 'text' : 'date'}
+                max={useTextDateInput ? undefined : getTodayIsoDate()}
+                value={useTextDateInput ? dataCompraInput : dataCompra}
+                onChange={(e) =>
+                  useTextDateInput
+                    ? handleDateInputChange(e.target.value)
+                    : setDataCompra(e.target.value)
+                }
+                onBlur={() => {
+                  if (useTextDateInput && dataCompra) {
+                    setDataCompraInput(formatDateInputValue(dataCompra));
+                  }
+                }}
+                inputMode={useTextDateInput ? 'numeric' : undefined}
+                placeholder={useTextDateInput ? 'dd/mm/aaaa' : undefined}
+                autoComplete={useTextDateInput ? 'bday' : 'off'}
+                pattern={useTextDateInput ? '\\d{2}/\\d{2}/\\d{4}' : undefined}
                 className="min-w-0 max-w-full"
               />
+              {hasInvalidDateInput && (
+                <span className="text-sm text-destructive">Digite uma data valida no formato dd/mm/aaaa.</span>
+              )}
+              {hasFutureDateInput && (
+                <span className="text-sm text-destructive">A data da compra nao pode ser futura.</span>
+              )}
             </div>
             <div className="min-w-0 space-y-2">
               <label htmlFor="quantidade" className="text-sm font-semibold text-primary">

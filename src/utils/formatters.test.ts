@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatBRL, formatCripto, formatDate, toCoinGeckoDate } from './formatters';
+import {
+  formatBRL,
+  formatCripto,
+  formatDate,
+  formatDateInputValue,
+  isValidIsoDate,
+  parseDateInputValue,
+  toCoinGeckoDate,
+} from './formatters';
 
 describe('formatBRL', () => {
   it('formata valor inteiro em BRL', () => {
@@ -66,5 +74,39 @@ describe('toCoinGeckoDate', () => {
 
   it('funciona com 31/12', () => {
     expect(toCoinGeckoDate('2022-12-31')).toBe('31-12-2022');
+  });
+});
+
+describe('isValidIsoDate', () => {
+  it('aceita data ISO valida', () => {
+    expect(isValidIsoDate('2024-06-15')).toBe(true);
+  });
+
+  it('rejeita data inexistente', () => {
+    expect(isValidIsoDate('2024-02-31')).toBe(false);
+  });
+});
+
+describe('formatDateInputValue', () => {
+  it('converte ISO para dd/mm/aaaa', () => {
+    expect(formatDateInputValue('2024-06-15')).toBe('15/06/2024');
+  });
+
+  it('mascara entrada parcial numerica', () => {
+    expect(formatDateInputValue('15062024')).toBe('15/06/2024');
+  });
+});
+
+describe('parseDateInputValue', () => {
+  it('converte dd/mm/aaaa para ISO', () => {
+    expect(parseDateInputValue('15/06/2024')).toBe('2024-06-15');
+  });
+
+  it('aceita ISO valido sem alterar', () => {
+    expect(parseDateInputValue('2024-06-15')).toBe('2024-06-15');
+  });
+
+  it('retorna vazio para data invalida', () => {
+    expect(parseDateInputValue('31/02/2024')).toBe('');
   });
 });
