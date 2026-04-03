@@ -11,7 +11,14 @@ import { useCoinListQuery, useCoinSearchQuery } from '../hooks/useCoinGecko';
 import { cn } from '../lib/utils';
 import { useAppStore } from '../store/useAppStore';
 import type { CoinListItem, ConsultaFormValues } from '../types';
-import { formatDateInputValue, getTodayIsoDate, parseDateInputValue } from '../utils/formatters';
+import {
+  formatDate,
+  formatDateInputValue,
+  getCoinGeckoHistoryMinDate,
+  getTodayIsoDate,
+  isCoinGeckoHistoryDateAllowed,
+  parseDateInputValue,
+} from '../utils/formatters';
 import CoinIdentity from './CoinIdentity';
 import Card from './ui/Card';
 import { Button } from './ui/Button';
@@ -218,6 +225,9 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
     useTextDateInput &&
     dataCompraInput.length === 10 &&
     parseDateInputValue(dataCompraInput) > getTodayIsoDate();
+  const minCoinGeckoDate = getCoinGeckoHistoryMinDate();
+  const hasOutOfRangeDateInput = Boolean(dataCompra) && !isCoinGeckoHistoryDateAllowed(dataCompra);
+  const helperDateText = `${formatDate(minCoinGeckoDate)} e ${formatDate(getTodayIsoDate())}`;
 
   return (
     <Card>
@@ -341,6 +351,17 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
               {hasFutureDateInput && (
                 <span className="text-sm text-destructive">A data da compra nao pode ser futura.</span>
               )}
+              {!hasInvalidDateInput && !hasFutureDateInput && hasOutOfRangeDateInput && (
+                <span className="text-sm text-amber-700 dark:text-amber-300">
+                  A API publica da CoinGecko consulta apenas datas entre {helperDateText}. Para
+                  anos anteriores, sera preciso outra fonte de historico ou um plano pago.
+                </span>
+              )}
+              {!hasInvalidDateInput && !hasFutureDateInput && !hasOutOfRangeDateInput && (
+                <span className="text-xs text-muted-foreground">
+                  Consulta historica pela API publica da CoinGecko: datas entre {helperDateText}.
+                </span>
+              )}
             </div>
             <div className="min-w-0 space-y-2">
               <label htmlFor="quantidade" className="text-sm font-semibold text-primary">
@@ -362,7 +383,7 @@ export default function ConsultaForm({ loading = false, onSubmit }: ConsultaForm
                 type="submit"
                 variant="lion"
                 size="lg"
-                disabled={loading || !selectedCoinId || !dataCompra}
+                disabled={loading || !selectedCoinId || !dataCompra || hasOutOfRangeDateInput}
                 className="w-full lg:min-w-[11.5rem]"
               >
                 {loading ? 'Consultando...' : 'Buscar Valor'}

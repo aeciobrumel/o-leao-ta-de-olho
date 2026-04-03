@@ -7,8 +7,12 @@ import { useRestoreCoinImages } from '../hooks/useRestoreCoinImages';
 import { useOperacoes } from '../hooks/useOperacoes';
 import { useResumoIR } from '../hooks/useResumoIR';
 import { DEFAULT_OG_IMAGE_URL, SITE_DISPLAY_NAME, SITE_URL } from '../lib/seo';
-import { CoinGeckoRateLimitError } from '../services/coingecko';
+import {
+  CoinGeckoHistoricalRangeError,
+  CoinGeckoRateLimitError,
+} from '../services/coingecko';
 import type { ResumoIR as ResumoIRType } from '../types';
+import { formatDate, getCoinGeckoHistoryMinDate, getTodayIsoDate } from '../utils/formatters';
 
 function exportResumoCSV(resumos: ResumoIRType[]) {
   const header = 'Ativo,Símbolo,Ano Fiscal,Quantidade Total,Custo de Aquisição (BRL),Preço Médio (BRL),Posição 31/12 (BRL)';
@@ -34,6 +38,8 @@ function exportResumoCSV(resumos: ResumoIRType[]) {
 }
 
 export default function ResumoIRPage() {
+  const minCoinGeckoDate = getCoinGeckoHistoryMinDate();
+  const maxCoinGeckoDate = getTodayIsoDate();
   const title = `Resumo de Criptoativos para Declaração do IR | ${SITE_DISPLAY_NAME}`;
   const description =
     'Gere um resumo de custo de aquisição por ativo e ano fiscal. Calcule preço médio e posição de criptoativos para organizar a declaração do Imposto de Renda.';
@@ -51,6 +57,7 @@ export default function ResumoIRPage() {
   );
   const { resumos, isLoading, hasError, errors } = useResumoIR(operacoesEnriquecidas);
   const hasRateLimit = errors.some((e) => e instanceof CoinGeckoRateLimitError);
+  const hasHistoricalRangeError = errors.some((e) => e instanceof CoinGeckoHistoricalRangeError);
 
   return (
     <>
@@ -89,6 +96,11 @@ export default function ResumoIRPage() {
               preencher a ficha de <strong>bens e direitos</strong> da declaração do Imposto de
               Renda, informando o custo de aquisição de cada criptoativo por ano fiscal.
             </p>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              A referência de preço em 31/12 depende da API publica da CoinGecko, que hoje consulta
+              apenas datas entre <strong>{formatDate(minCoinGeckoDate)}</strong> e{' '}
+              <strong>{formatDate(maxCoinGeckoDate)}</strong>.
+            </p>
           </div>
           {resumos.length > 0 && (
             <Button variant="secondary" size="sm" onClick={() => exportResumoCSV(resumos)} className="shrink-0">
@@ -103,6 +115,14 @@ export default function ResumoIRPage() {
             <p className="text-sm text-amber-900 dark:text-amber-300">
               ⏳ Limite de requisições da CoinGecko atingido. Aguarde cerca de 1 minuto e recarregue
               a página para buscar os preços de 31/12.
+            </p>
+          </Card>
+        ) : hasHistoricalRangeError ? (
+          <Card className="border-amber-200 bg-amber-50/80 dark:border-amber-800/50 dark:bg-amber-900/20">
+            <p className="text-sm text-amber-900 dark:text-amber-300">
+              A API publica da CoinGecko nao cobre parte dos anos fiscais salvos. O custo de
+              aquisicao continua disponivel, mas os valores de referencia em 31/12 fora da janela
+              de {formatDate(minCoinGeckoDate)} a {formatDate(maxCoinGeckoDate)} podem ficar zerados.
             </p>
           </Card>
         ) : hasError ? (

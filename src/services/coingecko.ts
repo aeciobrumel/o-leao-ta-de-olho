@@ -1,4 +1,5 @@
 import type {
+  CoinGeckoApiErrorResponse,
   CoinGeckoHistoryResponse,
   CoinGeckoMarketCoin,
   CoinGeckoSearchResponse,
@@ -11,7 +12,14 @@ import {
   setCachedCoinImages,
   setCachedCoinList,
 } from './localStorage';
-import { toCoinGeckoDate } from '../utils/formatters';
+import {
+  formatDate,
+  getCoinGeckoHistoryMinDate,
+  getTodayIsoDate,
+  isCoinGeckoHistoryDateAllowed,
+  toCoinGeckoDate,
+  toIsoDate,
+} from '../utils/formatters';
 
 const API_BASE_URL = 'https://api.coingecko.com/api/v3';
 const RATE_LIMIT_COOLDOWN_MS = 60 * 1000;
@@ -40,6 +48,29 @@ export class CoinGeckoRateLimitError extends CoinGeckoApiError {
     },
     );
     this.name = 'CoinGeckoRateLimitError';
+  }
+}
+
+export class CoinGeckoHistoricalRangeError extends CoinGeckoApiError {
+  apiMessage?: string;
+
+  constructor(requestedDate?: string, apiMessage?: string) {
+    const minDate = getCoinGeckoHistoryMinDate();
+    const maxDate = getTodayIsoDate();
+    const requestedDateText =
+      requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
+        ? ` A data informada foi ${formatDate(requestedDate)}.`
+        : '';
+
+    super(
+      `A API publica da CoinGecko so libera consultas historicas entre ${formatDate(minDate)} e ${formatDate(maxDate)}.${requestedDateText} Para datas anteriores, e necessario usar um plano pago ou outra fonte historica.`,
+      {
+        status: 400,
+        retryable: false,
+      },
+    );
+    this.name = 'CoinGeckoHistoricalRangeError';
+    this.apiMessage = apiMessage;
   }
 }
 
@@ -88,6 +119,31 @@ export function shouldRetryCoinGeckoRequest(error: unknown) {
   return error instanceof CoinGeckoApiError ? error.retryable : false;
 }
 
+function extractCoinGeckoError(payload: CoinGeckoApiErrorResponse | null) {
+  return payload?.status ?? payload;
+}
+
+function isHistoricalRangeErrorPayload(payload: CoinGeckoApiErrorResponse | null) {
+  const normalized = extractCoinGeckoError(payload);
+  const message = normalized?.error_message?.toLowerCase() ?? '';
+
+  return normalized?.error_code === 10012 || message.includes('allowed time range');
+}
+
+async function parseCoinGeckoErrorResponse(response: Response) {
+  const contentType = response.headers.get('content-type') ?? '';
+
+  if (!contentType.includes('application/json')) {
+    return null;
+  }
+
+  try {
+    return (await response.json()) as CoinGeckoApiErrorResponse;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchJson<T>(url: string) {
   if (rateLimitBlockedUntil > Date.now()) {
     throw new CoinGeckoRateLimitError();
@@ -106,6 +162,9 @@ async function fetchJson<T>(url: string) {
   }
 
   if (!response.ok) {
+    const errorPayload = await parseCoinGeckoErrorResponse(response);
+    const normalizedError = extractCoinGeckoError(errorPayload);
+
     if (response.status === 404) {
       throw new CoinGeckoNotFoundError();
     }
@@ -119,10 +178,17 @@ async function fetchJson<T>(url: string) {
       throw new CoinGeckoServerError(response.status);
     }
 
-    throw new CoinGeckoApiError(`CoinGecko respondeu com status ${response.status}.`, {
+    if (isHistoricalRangeErrorPayload(errorPayload)) {
+      throw new CoinGeckoHistoricalRangeError(undefined, normalizedError?.error_message);
+    }
+
+    throw new CoinGeckoApiError(
+      normalizedError?.error_message ?? `CoinGecko respondeu com status ${response.status}.`,
+      {
       status: response.status,
       retryable: false,
-    });
+      },
+    );
   }
 
   return (await response.json()) as T;
@@ -132,7 +198,13 @@ export async function fetchCoinHistory(
   coinId: string,
   dateInput: string | Date,
 ): Promise<ConsultaHistorica> {
-  const date = toCoinGeckoDate(dateInput);
+  const isoDate = toIsoDate(dateInput);
+
+  if (!isCoinGeckoHistoryDateAllowed(isoDate)) {
+    throw new CoinGeckoHistoricalRangeError(isoDate);
+  }
+
+  const date = toCoinGeckoDate(isoDate);
   const url = `${API_BASE_URL}/coins/${encodeURIComponent(coinId)}/history?date=${date}&localization=false`;
   const data = await fetchJson<CoinGeckoHistoryResponse>(url);
   const precoUnitarioBRL = data.market_data?.current_price?.brl;

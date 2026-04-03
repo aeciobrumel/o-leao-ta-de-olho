@@ -12,6 +12,15 @@ export interface CoinGeckoHistoryResponse {
   };
 }
 
+export interface CoinGeckoApiErrorResponse {
+  error_code?: number;
+  error_message?: string;
+  status?: {
+    error_code?: number;
+    error_message?: string;
+  };
+}
+
 export interface CoinListItem {
   id: string;
   symbol: string;

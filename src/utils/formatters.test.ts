@@ -4,9 +4,14 @@ import {
   formatCripto,
   formatDate,
   formatDateInputValue,
+  getCoinGeckoHistoryMinDate,
+  getTodayIsoDate,
   isValidIsoDate,
+  isCoinGeckoHistoryDateAllowed,
   parseDateInputValue,
+  shiftIsoDateByDays,
   toCoinGeckoDate,
+  toIsoDate,
 } from './formatters';
 
 describe('formatBRL', () => {
@@ -77,6 +82,12 @@ describe('toCoinGeckoDate', () => {
   });
 });
 
+describe('toIsoDate', () => {
+  it('normaliza Date para formato ISO sem sofrer com timezone', () => {
+    expect(toIsoDate(new Date(Date.UTC(2024, 5, 15)))).toBe('2024-06-15');
+  });
+});
+
 describe('isValidIsoDate', () => {
   it('aceita data ISO valida', () => {
     expect(isValidIsoDate('2024-06-15')).toBe(true);
@@ -108,5 +119,37 @@ describe('parseDateInputValue', () => {
 
   it('retorna vazio para data invalida', () => {
     expect(parseDateInputValue('31/02/2024')).toBe('');
+  });
+});
+
+describe('getTodayIsoDate', () => {
+  it('aceita uma data de referencia explicita', () => {
+    expect(getTodayIsoDate('2026-04-02')).toBe('2026-04-02');
+  });
+});
+
+describe('shiftIsoDateByDays', () => {
+  it('subtrai dias corretamente', () => {
+    expect(shiftIsoDateByDays('2026-04-02', -365)).toBe('2025-04-02');
+  });
+});
+
+describe('getCoinGeckoHistoryMinDate', () => {
+  it('calcula a menor data permitida na janela de 365 dias', () => {
+    expect(getCoinGeckoHistoryMinDate('2026-04-02')).toBe('2025-04-02');
+  });
+});
+
+describe('isCoinGeckoHistoryDateAllowed', () => {
+  it('aceita a data limite inferior', () => {
+    expect(isCoinGeckoHistoryDateAllowed('2025-04-02', '2026-04-02')).toBe(true);
+  });
+
+  it('rejeita datas anteriores a 365 dias', () => {
+    expect(isCoinGeckoHistoryDateAllowed('2025-04-01', '2026-04-02')).toBe(false);
+  });
+
+  it('rejeita datas futuras', () => {
+    expect(isCoinGeckoHistoryDateAllowed('2026-04-03', '2026-04-02')).toBe(false);
   });
 });

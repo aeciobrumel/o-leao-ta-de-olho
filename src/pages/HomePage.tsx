@@ -15,6 +15,7 @@ import { useOperacoes } from '../hooks/useOperacoes';
 import { CoinGeckoRateLimitError } from '../services/coingecko';
 import type { ConsultaFormValues, Operacao } from '../types';
 import { generateId } from '../utils/generateId';
+import { formatDate, getCoinGeckoHistoryMinDate, getTodayIsoDate } from '../utils/formatters';
 
 interface SubmissionState extends ConsultaFormValues {
   token: string;
@@ -26,6 +27,8 @@ const PAGE_CANONICAL_URL = `${SITE_URL}/`;
 const PAGE_OG_IMAGE_URL = DEFAULT_OG_IMAGE_URL;
 
 export default function HomePage() {
+  const minCoinGeckoDate = getCoinGeckoHistoryMinDate();
+  const maxCoinGeckoDate = getTodayIsoDate();
   const [submission, setSubmission] = useState<SubmissionState | null>(null);
   const [operacaoAtual, setOperacaoAtual] = useState<Operacao | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -135,6 +138,11 @@ export default function HomePage() {
             <p className="mt-2 text-sm text-muted-foreground">
               Consulte o preço histórico de cada compra, salve a operação no navegador e gere um
               resumo por ativo para organizar a declaração de cripto no Imposto de Renda.
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              A consulta usa a API publica da CoinGecko e, no momento, cobre apenas datas entre{' '}
+              <strong>{formatDate(minCoinGeckoDate)}</strong> e{' '}
+              <strong>{formatDate(maxCoinGeckoDate)}</strong>.
             </p>
           </Card>
 

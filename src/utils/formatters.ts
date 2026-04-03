@@ -18,6 +18,15 @@ function getDateParts(dateInput: string | Date) {
   };
 }
 
+function getIsoDateParts(dateInput: string) {
+  const [year, month, day] = dateInput.split('-').map(Number);
+  return { year, month, day };
+}
+
+function formatIsoDateFromParts(year: number, month: number, day: number) {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 export function formatBRL(value: number) {
   return brlFormatter.format(value);
 }
@@ -43,6 +52,12 @@ export function toCoinGeckoDate(dateInput: string | Date) {
   const { year, month, day } = getDateParts(dateInput);
 
   return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`;
+}
+
+export function toIsoDate(dateInput: string | Date) {
+  const { year, month, day } = getDateParts(dateInput);
+
+  return formatIsoDateFromParts(year, month, day);
 }
 
 export function formatDateTime(dateInput: string | Date) {
@@ -129,11 +144,38 @@ export function formatResumoIRText(resumo: {
   ].join('\n');
 }
 
-export function getTodayIsoDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+export function getTodayIsoDate(referenceDate: string | Date = new Date()) {
+  const { year, month, day } = getDateParts(referenceDate);
 
-  return `${year}-${month}-${day}`;
+  return formatIsoDateFromParts(year, month, day);
+}
+
+export function shiftIsoDateByDays(dateInput: string, days: number) {
+  if (!isValidIsoDate(dateInput)) {
+    return '';
+  }
+
+  const { year, month, day } = getIsoDateParts(dateInput);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+
+  return formatIsoDateFromParts(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+}
+
+export function getCoinGeckoHistoryMinDate(referenceDate: string | Date = new Date()) {
+  return shiftIsoDateByDays(getTodayIsoDate(referenceDate), -365);
+}
+
+export function isCoinGeckoHistoryDateAllowed(
+  dateInput: string,
+  referenceDate: string | Date = new Date(),
+) {
+  if (!isValidIsoDate(dateInput)) {
+    return false;
+  }
+
+  const today = getTodayIsoDate(referenceDate);
+  const minDate = getCoinGeckoHistoryMinDate(referenceDate);
+
+  return dateInput >= minDate && dateInput <= today;
 }
